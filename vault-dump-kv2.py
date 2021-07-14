@@ -8,8 +8,9 @@ import sys
 import hvac
 
 # Source: https://hvac.readthedocs.io/en/stable/usage/secrets_engines/kv_v2.html
-client = hvac.Client()
-
+client = hvac.Client(os.environ.get('VAULT_ADDR', ''))
+# client.token = os.environ.get('VAULT_TOKEN', '')
+assert client.is_authenticated()
 
 def is_secret_latest_version_deleted(path, mountpoint):
     metadata = client.secrets.kv.v2.read_secret_metadata(path, mount_point=mountpoint)['data']
@@ -52,6 +53,14 @@ def recurse_secrets(path_prefix, mountpoint):
 
 vault_dump_mountpoint = os.environ.get('VAULT_DUMP_MOUNTPOINT', '/secret/')
 vault_dump_path_prefix = os.environ.get('VAULT_DUMP_PATH_PREFIX', '')
+
+
+hvac_path_metadata = client.secrets.kv.v2.read_secret_metadata(
+    path=vault_dump_path_prefix,
+)
+
+# print('metadata')
+# path(hvac_path_metadata)
 
 print('#')
 print('# vault-dump-kv2.py backup')
