@@ -6,11 +6,12 @@ import os
 import sys
 
 import hvac
+import base64
 
 # Source: https://hvac.readthedocs.io/en/stable/usage/secrets_engines/kv_v2.html
-client = hvac.Client(os.environ.get('VAULT_ADDR', ''))
-# client.token = os.environ.get('VAULT_TOKEN', '')
-assert client.is_authenticated()
+client = hvac.Client(url=os.environ['VAULT_ADDR'], token=os.environ['VAULT_TOKEN'], verify=False)
+#print(client.is_authenticated())
+
 
 def is_secret_latest_version_deleted(path, mountpoint):
     metadata = client.secrets.kv.v2.read_secret_metadata(path, mount_point=mountpoint)['data']
@@ -28,11 +29,12 @@ def print_secret(path, mountpoint):
     print("vault kv put {}{}".format(vault_dump_mountpoint, path), end='')
     if content:
         for key in sorted(content.keys()):
-            value = content[key]
-            # try:
-            #   value = value.encode("utf-8")
-            # except AttributeError:
-            #   value = value
+            value = str(content[key])
+            #print("key, value", key, value)
+            #try:
+            #  value = base64.b64encode(value.encode("utf-8"))
+            #except AttributeError:
+            #  value = value
             print(" {0}=\"{1}\"".format(key, value.replace('"', '\\"')), end='')
     else:
         # print a "" to indicate to Vault CLI that we'd like to put an empty secret
@@ -53,14 +55,6 @@ def recurse_secrets(path_prefix, mountpoint):
 
 vault_dump_mountpoint = os.environ.get('VAULT_DUMP_MOUNTPOINT', '/secret/')
 vault_dump_path_prefix = os.environ.get('VAULT_DUMP_PATH_PREFIX', '')
-
-
-hvac_path_metadata = client.secrets.kv.v2.read_secret_metadata(
-    path=vault_dump_path_prefix,
-)
-
-# print('metadata')
-# path(hvac_path_metadata)
 
 print('#')
 print('# vault-dump-kv2.py backup')
